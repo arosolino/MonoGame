@@ -93,7 +93,7 @@ namespace Microsoft.Xna.Framework.Input
 
         #region XNA Interface
 
-        internal KeyboardState(uint keys0, uint keys1, uint keys2, uint keys3, uint keys4, uint keys5, uint keys6, uint keys7, byte modifiers) : this()
+        public KeyboardState(uint keys0, uint keys1, uint keys2, uint keys3, uint keys4, uint keys5, uint keys6, uint keys7, byte modifiers) : this()
         {
             _keys0 = keys0;
             _keys1 = keys1;
@@ -129,6 +129,7 @@ namespace Microsoft.Xna.Framework.Input
         /// <param name="keys">List of keys to be flagged as pressed on initialization.</param>
         /// <param name="capsLock">Caps Lock state.</param>
         /// <param name="numLock">Num Lock state.</param>
+        /// /*
         public KeyboardState(Keys[] keys, bool capsLock = false, bool numLock = false) : this()
         {
             _keys0 = 0;
