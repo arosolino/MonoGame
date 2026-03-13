@@ -2,13 +2,12 @@
 using System.ComponentModel;
 using System.Globalization;
 using Microsoft.Xna.Framework.Graphics.PackedVector;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Xna.Framework.Design
 {
     internal static class VectorConversion
     {
-        public static bool CanConvertTo(ITypeDescriptorContext context, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type destinationType)
+        public static bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
         {
             if (destinationType == typeof(float))
                 return true;
@@ -24,7 +23,7 @@ namespace Microsoft.Xna.Framework.Design
             return false;
         }
 
-        public static object ConvertToFromVector4(ITypeDescriptorContext context, CultureInfo culture, Vector4 value, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type destinationType)
+        public static object ConvertToFromVector4(ITypeDescriptorContext context, CultureInfo culture, Vector4 value, Type destinationType)
         {
             if (destinationType == typeof(float))
                 return value.X;

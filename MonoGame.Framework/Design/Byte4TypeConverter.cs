@@ -5,10 +5,8 @@
 using Microsoft.Xna.Framework.Graphics.PackedVector;
 using System;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
- 
-#pragma warning disable IL2067
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Xna.Framework.Design
 {
@@ -16,8 +14,7 @@ namespace Microsoft.Xna.Framework.Design
     /// Provides a unified way of converting <see cref="Byte4"/> value to other types, as well as for accessing
     /// standard values and subproperties.
     /// </summary>
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-    public sealed class Byte4TypeConverter : TypeConverter
+    public class Byte4TypeConverter : TypeConverter
     {
         /// <inheritdoc />
         public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
@@ -77,5 +74,3 @@ namespace Microsoft.Xna.Framework.Design
         }
     }
 }
-
-#pragma warning restore IL2067

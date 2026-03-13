@@ -4,17 +4,13 @@
 
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Xna.Framework.Graphics.PackedVector
 {
     /// <summary>
     /// Packed vector type containing two 16-bit signed integer values.
     /// </summary>
-#if XNADESIGNPROVIDED
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-#endif
-    public struct Short2 : IPackedVector<uint>, IEquatable<Short2>
+	public struct Short2 : IPackedVector<uint>, IEquatable<Short2>
 	{
 		private uint _short2Packed;
 
