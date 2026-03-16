@@ -1,4 +1,8 @@
 <Project>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);NO_AUDIO</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup Condition="$(DefineConstants.Contains('NO_AUDIO')) != 'true'">
     <PackageReference Version="4.0.1" Include="SharpDX.MediaFoundation" />
     <PackageReference Version="4.0.1" Include="SharpDX.XAudio2" />

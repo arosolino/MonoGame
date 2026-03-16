@@ -1,4 +1,8 @@
 <Project>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);NO_AUDIO</DefineConstants>
+  </PropertyGroup>
+
   <PropertyGroup Condition="$(DefineConstants.Contains('NO_AUDIO')) != 'true'">
     <DefineConstants>$(DefineConstants);OPENAL</DefineConstants>
   </PropertyGroup>
