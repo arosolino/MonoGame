@@ -534,8 +534,17 @@ namespace Microsoft.Xna.Framework.Graphics
         {
 #if DESKTOPGL || ANGLE
             Context.SwapBuffers();
-#endif
+
+#if DEBUG
             GraphicsExtensions.CheckGLError();
+
+            // Calling this once forces Vsync to finish after SwapBuffers is called
+            // If we don't do this it may cause it to wait for Vsync during the next frame
+#else
+            GL.GetError();
+#endif
+#endif
+
 
             // Dispose of any GL resources that were disposed in another thread
             int count = _disposeThisFrame.Count;
@@ -1141,7 +1150,6 @@ namespace Microsoft.Xna.Framework.Graphics
                 // Setup the vertex declaration to point at the VB data.
                 vertexDeclaration.GraphicsDevice = this;
                 vertexDeclaration.Apply(_vertexShader, vertexAddr, ShaderProgramHash);
-
                 //Draw
                 GL.DrawElements(
                     PrimitiveTypeGL(primitiveType),
