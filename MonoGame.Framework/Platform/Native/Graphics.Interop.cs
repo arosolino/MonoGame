@@ -55,6 +55,8 @@ internal struct MGG_GraphicsAdaptor_Info
     public MGG_DisplayMode CurrentDisplayMode;
 }
 
+internal delegate void MGG_GraphicsDevice_ResetDeviceCallback();
+
 [StructLayout(LayoutKind.Sequential)]
 internal struct MGG_GraphicsDevice_Caps
 {
@@ -178,7 +180,10 @@ internal static unsafe partial class MGG
     #region Graphics Device
 
     [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_Create", ExactSpelling = true)]
-    public static extern MGG_GraphicsDevice* GraphicsDevice_Create(MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter);
+    public static extern MGG_GraphicsDevice* GraphicsDevice_Create(MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter, MGG_GraphicsDevice_ResetDeviceCallback callback);
+
+    [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_Reset", ExactSpelling = true)]
+    public static extern MGG_GraphicsDevice* GraphicsDevice_Reset(MGG_GraphicsDevice* device, MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter);
 
     [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_Destroy", ExactSpelling = true)]
     public static extern void GraphicsDevice_Destroy(MGG_GraphicsDevice* device);
@@ -210,6 +215,10 @@ internal static unsafe partial class MGG
 
     [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_SetDepthStencilState", ExactSpelling = true)]
     public static extern void GraphicsDevice_SetDepthStencilState(MGG_GraphicsDevice* device, MGG_DepthStencilState* state);
+
+    // Work on this
+    [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_SetDeviceLostCallback", ExactSpelling = true)]
+    public static extern void GraphicsDevice_SetDeviceLostCallback(MGG_GraphicsDevice* device);
 
     [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_SetRasterizerState", ExactSpelling = true)]
     public static extern void GraphicsDevice_SetRasterizerState(MGG_GraphicsDevice* device, MGG_RasterizerState* state);

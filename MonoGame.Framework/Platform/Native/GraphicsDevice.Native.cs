@@ -27,6 +27,8 @@ public partial class GraphicsDevice
     private unsafe readonly MGG_Texture*[] _curRenderTargets = new MGG_Texture*[4];
     private readonly int[] _currentRenderTargetArraySlices = new int[4];
 
+    private MGG_GraphicsDevice_ResetDeviceCallback _resetDeviceCallback;
+
     internal static int ShaderProfile
     {
         get; private set;
@@ -34,8 +36,10 @@ public partial class GraphicsDevice
 
     private unsafe void PlatformSetup()
     {
+        _resetDeviceCallback = ResetDevice;
+
         // Creates the device, but no swap chain yet.
-        Handle = MGG.GraphicsDevice_Create(NativeGamePlatform.GraphicsSystem, Adapter.Handle);
+        Handle = MGG.GraphicsDevice_Create(NativeGamePlatform.GraphicsSystem, Adapter.Handle, _resetDeviceCallback);
 
         // Get the device caps.
         MGG_GraphicsDevice_Caps caps;
@@ -329,6 +333,18 @@ public partial class GraphicsDevice
         _vertexBuffersDirty = false;
         _vertexShaderDirty = false;
         _pixelShaderDirty = false;
+    }
+    private unsafe void ResetDevice()
+    {
+        OnDeviceResetting();
+
+       // MGG.GraphicsDevice_Reset(Handle, NativeGamePlatform.GraphicsSystem, Adapter.Handle);
+
+       // _currentFrame = -1;
+       // OnPresentationChanged();
+
+       // Content.ContentManager.ReloadGraphicsContent();
+        OnDeviceReset();
     }
 
     private int SetUserVertexBuffer<T>(T[] vertexData, int vertexOffset, int vertexCount, VertexDeclaration vertexDecl)

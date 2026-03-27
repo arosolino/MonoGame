@@ -376,7 +376,7 @@ void MGG_GraphicsAdapter_GetInfo(MGG_GraphicsAdapter* adapter, MGG_GraphicsAdapt
 	info.CurrentDisplayMode = currentDisplayMode;
 }
 
-MGG_GraphicsDevice* MGG_GraphicsDevice_Create(MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter)
+MGG_GraphicsDevice* MGG_GraphicsDevice_Create(MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter, MGG_GraphicsDevice_ResetDeviceCallback resetDeviceCallback)
 {
 	assert(system != nullptr);
 	assert(adapter != nullptr);
@@ -389,6 +389,7 @@ MGG_GraphicsDevice* MGG_GraphicsDevice_Create(MGG_GraphicsSystem* system, MGG_Gr
 	device->resources->CreateDeviceResources();
 #else
 	device->resources->CreateDeviceResources(system->dxgiFactory.Get(), adapter->adapter.Get());
+	device->resources->SetDeviceResetCallback(resetDeviceCallback);
 #endif
 
 	device->context = device->resources->GetCommandContext();
@@ -397,10 +398,23 @@ MGG_GraphicsDevice* MGG_GraphicsDevice_Create(MGG_GraphicsSystem* system, MGG_Gr
 	return device;
 }
 
+void MGG_GraphicsDevice_Reset(MGG_GraphicsDevice* device, MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter)
+{
+	return;
+	if (device->depthTexture)
+	{
+		delete device->depthTexture;
+		device->depthTexture = nullptr;
+	}
+
+	device->pipelineManager->Reset();
+	device->resources->Reset();
+	device->resources->CreateDeviceResources(system->dxgiFactory.Get(), adapter->adapter.Get());
+}
+
 void MGG_GraphicsDevice_Destroy(MGG_GraphicsDevice* device)
 {
 	assert(device != nullptr);
-
 
 	MGDX_DestroyFrameResources(device, 0, true);
 
@@ -453,9 +467,6 @@ void MGG_GraphicsDevice_ResizeSwapchain(
 #else
 #error Not Implemented
 #endif
-
-	//resetCallback = OnDeviceLost;
-	//DxDevice.SetDeviceResetCallback(resetCallback);
 #endif
 
 	int sampleCount = 1; // PresentationParameters.MultiSampleCount;
@@ -559,7 +570,10 @@ void MGG_GraphicsDevice_Present(MGG_GraphicsDevice* device, mgint currentFrame, 
 	assert(currentFrame >= 0);
 
 #if !defined(_GAMING_XBOX)
-	device->resources->Present(syncInterval, 0);
+	auto flags = 0;
+	if (syncInterval == 0)
+		flags |= DXGI_PRESENT_ALLOW_TEARING;
+	device->resources->Present(syncInterval, flags);
 #else
 	device->resources->PresentX();
 #endif

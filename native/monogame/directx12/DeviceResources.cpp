@@ -10,7 +10,8 @@
 #include "Sampler.h"
 #include "PipelineState.h"
 #include "CommandContext.h"
-
+#include <random>
+#include <iostream>
 using namespace DirectX;
 using namespace DX;
 using namespace Graphics;
@@ -345,7 +346,16 @@ public:
     void Present(UINT sync, UINT flags) {
         BeforePresent();
 
-        HandleLost(m_swapChain->Present(sync, flags));
+		// Can I do this randomly to test HANDLE_LOST handling?
+        //static std::random_device rd;
+        //static std::mt19937 gen(rd());
+        //static std::uniform_int_distribution<> distrib(1, 200);
+        
+        //if (distrib(gen) == 1) {
+       //     HandleLost(DXGI_ERROR_DEVICE_RESET);
+       // }
+       // else
+            HandleLost(m_swapChain->Present(sync, flags));
 
         m_fenceValues[m_backBufferIndex] = m_commandListPool->GetCommandQueue()->SignalFence();
 
@@ -362,6 +372,14 @@ public:
             ThrowIfFailed(hr);
             return false;
         }
+
+        HRESULT reason = m_d3dDevice->GetDeviceRemovedReason();
+//#if defined(_DEBUG)
+        wchar_t outString[100];
+        size_t size = 100;
+        swprintf_s(outString, size, L"Device removed! DXGI_ERROR code: 0x%X\n", reason);
+        OutputDebugStringW(outString);
+//#endif
 
         m_lostCbk(); // let the C# dictate the order of reset
         return true;
@@ -555,8 +573,6 @@ void DeviceResources::WaitForOrigin() {
 }
 #else
 void DeviceResources::Present(int sync, int flags) {
-    if(sync == 0)
-        flags |= DXGI_PRESENT_ALLOW_TEARING;
     pImpl->Present(sync, flags);
 }
 

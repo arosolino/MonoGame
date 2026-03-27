@@ -25,8 +25,11 @@ public partial class IndexBuffer
     {
         if (Handle != null)
         {
-            MGG.Buffer_Destroy(GraphicsDevice.Handle, Handle);
-            Handle = null;
+            //MGG.Buffer_Destroy(GraphicsDevice.Handle, Handle);
+            //Handle = null;
+
+            //var indexBytes = IndexElementSize == IndexElementSize.SixteenBits ? 2 : 4;
+            //Handle = MGG.Buffer_Create(GraphicsDevice.Handle, BufferType.Index, IndexCount * indexBytes);
         }
     }
 

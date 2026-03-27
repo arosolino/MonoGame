@@ -12,11 +12,11 @@ public abstract partial class Texture
 
     private unsafe void PlatformGraphicsDeviceResetting()
     {
-        if (Handle != null && Owned)
-        {
-            MGG.Texture_Destroy(GraphicsDevice.Handle, Handle);
-            Handle = null;
-        }
+        //if (Handle != null && Owned)
+        //{
+        //    MGG.Texture_Destroy(GraphicsDevice.Handle, Handle);
+        //    Handle = null;
+        //}
     }
 
     protected unsafe override void Dispose(bool disposing)

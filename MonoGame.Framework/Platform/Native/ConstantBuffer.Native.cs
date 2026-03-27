@@ -20,7 +20,7 @@ internal partial class ConstantBuffer
     private void PlatformClear()
     {
         // TODO: What is this for?
-        throw new NotImplementedException();
+        //throw new NotImplementedException();
     }
 
     internal unsafe void PlatformApply(GraphicsDevice device, ShaderStage stage, int slot)

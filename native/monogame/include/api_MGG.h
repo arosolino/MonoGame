@@ -25,14 +25,17 @@ struct MGG_Shader;
 struct MGG_InputLayout;
 struct MGG_OcclusionQuery;
 
+typedef void(*MGG_GraphicsDevice_ResetDeviceCallback)();
+
 MG_EXPORT void MGG_EffectResource_GetBytecode(const char* name, mgbyte*& bytecode, mgint& size);
 MG_EXPORT MGG_GraphicsSystem* MGG_GraphicsSystem_Create();
 MG_EXPORT void MGG_GraphicsSystem_Destroy(MGG_GraphicsSystem* system);
 MG_EXPORT MGG_GraphicsAdapter* MGG_GraphicsAdapter_Get(MGG_GraphicsSystem* system, mgint index);
 MG_EXPORT void MGG_GraphicsAdapter_GetInfo(MGG_GraphicsAdapter* adapter, MGG_GraphicsAdaptor_Info& info);
-MG_EXPORT MGG_GraphicsDevice* MGG_GraphicsDevice_Create(MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter);
+MG_EXPORT MGG_GraphicsDevice* MGG_GraphicsDevice_Create(MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter, MGG_GraphicsDevice_ResetDeviceCallback callback);
 MG_EXPORT void MGG_GraphicsDevice_Destroy(MGG_GraphicsDevice* device);
 MG_EXPORT void MGG_GraphicsDevice_GetCaps(MGG_GraphicsDevice* device, MGG_GraphicsDevice_Caps& caps);
+MG_EXPORT void MGG_GraphicsDevice_Reset(MGG_GraphicsDevice* device, MGG_GraphicsSystem* system, MGG_GraphicsAdapter* adapter);
 MG_EXPORT void MGG_GraphicsDevice_ResizeSwapchain(MGG_GraphicsDevice* device, void* nativeWindowHandle, mgint width, mgint height, MGSurfaceFormat color, MGDepthFormat depth, mgint syncInterval);
 MG_EXPORT mgint MGG_GraphicsDevice_BeginFrame(MGG_GraphicsDevice* device);
 MG_EXPORT void MGG_GraphicsDevice_Clear(MGG_GraphicsDevice* device, MGClearOptions options, Vector4& color, mgfloat depth, mgint stencil);

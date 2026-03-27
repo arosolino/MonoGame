@@ -52,11 +52,11 @@ public partial class VertexBuffer
 
     private unsafe void PlatformGraphicsDeviceResetting()
     {
-        if (Handle != null)
-        {
-            MGG.Buffer_Destroy(GraphicsDevice.Handle, Handle);
-            Handle = null;
-        }
+        //if (Handle != null)
+        //{
+        //    MGG.Buffer_Destroy(GraphicsDevice.Handle, Handle);
+        //    Handle = null;// MGG.Buffer_Create(GraphicsDevice.Handle, BufferType.Vertex, VertexCount * VertexDeclaration.VertexStride);
+        //}
     }
 
     protected override void Dispose(bool disposing)

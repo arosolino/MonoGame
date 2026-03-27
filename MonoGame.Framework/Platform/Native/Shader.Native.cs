@@ -56,6 +56,7 @@ partial class Shader
 
     private unsafe void PlatformGraphicsDeviceResetting()
     {
+        /*
         foreach (var pair in _cache)
             MGG.InputLayout_Destroy(GraphicsDevice.Handle, pair.Value.Ptr);
         _cache.Clear();
@@ -65,6 +66,7 @@ partial class Shader
             MGG.Shader_Destroy(GraphicsDevice.Handle, Handle);
             Handle = null;
         }
+        */
     }
 
     protected override void Dispose(bool disposing)
