@@ -65,5 +65,11 @@ namespace Microsoft.Xna.Framework.Input
             if (!_isActive)
                 _keys.Clear();
         }
+
+
+        private static void PlatformReset()
+        {
+            // Get's a fresh keyboard state each frame
+        }
     }
 }

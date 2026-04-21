@@ -30,5 +30,10 @@ namespace Microsoft.Xna.Framework.Input
 		{
             return PlatformGetState();
 		}
+
+        public static void Reset()
+        {
+            PlatformReset();
+        }
 	}
 }
