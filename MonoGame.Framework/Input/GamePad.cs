@@ -169,5 +169,10 @@ namespace Microsoft.Xna.Framework.Input
         {
             get { return PlatformGetMaxNumberOfGamePads(); }
         }
+
+        public static void ResetState(int index)
+        {
+            PlatformResetState(index);
+        }
     }
 }

@@ -26,7 +26,7 @@ public static partial class Keyboard
         return new KeyboardState(Keys, capsLock, numLock);
     }
 
-    private static void PlatformReset()
+    private static void PlatformResetState()
     {
         Keys.Clear();
     }

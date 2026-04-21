@@ -38,4 +38,8 @@ static partial class Joystick
     {
 
     }
+
+    private static void PlatformResetState(int index)
+    {
+    }
 }

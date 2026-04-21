@@ -140,5 +140,9 @@ namespace Microsoft.Xna.Framework.Input
                 joystickState.Hats = _defaultJoystickState.Hats;
             }
         }
+
+        private static void PlatformResetState(int index)
+        {
+        }
     }
 }

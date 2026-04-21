@@ -20,7 +20,7 @@ namespace Microsoft.Xna.Framework.Input
             _keys = keys;
         }
 
-        private static void PlatformReset()
+        private static void PlatformResetState()
         {
             _keys.Clear();
         }

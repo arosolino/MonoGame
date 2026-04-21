@@ -66,5 +66,11 @@ namespace Microsoft.Xna.Framework.Input
         {
             PlatformSetCursor(cursor);
         }
+
+        public static void ResetState()
+        {
+            if (PrimaryWindow != null)
+                PlatformResetState(PrimaryWindow);
+        }
     }
 }

@@ -69,5 +69,10 @@ namespace Microsoft.Xna.Framework.Input
         {
             PlatformGetState(ref joystickState, index);
         }
+
+        public static void ResetState(int index)
+        {
+            PlatformResetState(index);
+        }
     }
 }

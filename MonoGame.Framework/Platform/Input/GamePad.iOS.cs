@@ -256,6 +256,10 @@ namespace Microsoft.Xna.Framework.Input
             return state;
         }
 
+        private static void PlatformResetState(int index)
+        {
+        }
+    
         private static bool PlatformSetVibration(int index, float leftMotor, float rightMotor, float leftTrigger, float rightTrigger)
         {
             return false;

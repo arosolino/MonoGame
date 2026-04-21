@@ -215,6 +215,10 @@ static partial class GamePad
         return new GamePadState();
     }
 
+    private static void PlatformResetState(int index)
+    {
+    }
+
     private static unsafe bool PlatformSetVibration(int index, float leftMotor, float rightMotor, float leftTrigger, float rightTrigger)
     {
         if (Handle == null)

@@ -54,5 +54,9 @@ namespace Microsoft.Xna.Framework.Input
         {
             Sdl.Mouse.SetCursor(cursor.Handle);
         }
+
+        private static void PlatformResetState(GameWindow window)
+        {
+        }
     }
 }

@@ -230,6 +230,10 @@ namespace Microsoft.Xna.Framework.Input
             return state;
         }
 
+        private static void PlatformResetState(int index)
+        {
+        }
+
         private static ButtonState ConvertToButtonState(
             SharpDX.XInput.GamepadButtonFlags buttonFlags,
             SharpDX.XInput.GamepadButtonFlags desiredButton)

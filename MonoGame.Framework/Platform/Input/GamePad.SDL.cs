@@ -15,6 +15,12 @@ namespace Microsoft.Xna.Framework.Input
         {
             public IntPtr Device;
             public int PacketNumber;
+
+            public Buttons Buttons;
+            public Vector2 ThumbstickL;
+            public Vector2 ThumbstickR;
+            public float TriggerL;
+            public float TriggerR;
         }
 
         private static readonly Dictionary<int, GamePadInfo> Gamepads = new Dictionary<int, GamePadInfo>();
@@ -58,17 +64,93 @@ namespace Microsoft.Xna.Framework.Input
             }
         }
 
-        internal static void UpdatePacketInfo(int instanceid, uint packetNumber)
+        internal static Buttons FromSDLButton(Sdl.GameController.Button button)
         {
-            int index;
-            if (_translationTable.TryGetValue(instanceid, out index))
+            return button switch
             {
-                GamePadInfo info = null;
-                if (Gamepads.TryGetValue(index, out info))
-                {
-                    info.PacketNumber = packetNumber < int.MaxValue ? (int)packetNumber : (int)(packetNumber - (uint)int.MaxValue);
-                }
+                Sdl.GameController.Button.A => Buttons.A,
+                Sdl.GameController.Button.B => Buttons.B,
+                Sdl.GameController.Button.X => Buttons.X,
+                Sdl.GameController.Button.Y => Buttons.Y,
+                Sdl.GameController.Button.Back => Buttons.Back,
+                Sdl.GameController.Button.Guide => Buttons.BigButton,
+                Sdl.GameController.Button.Start => Buttons.Start,
+                Sdl.GameController.Button.LeftStick => Buttons.LeftStick,
+                Sdl.GameController.Button.RightStick => Buttons.RightStick,
+                Sdl.GameController.Button.LeftShoulder => Buttons.LeftShoulder,
+                Sdl.GameController.Button.RightShoulder => Buttons.RightShoulder,
+                Sdl.GameController.Button.DpadUp => Buttons.DPadUp,
+                Sdl.GameController.Button.DpadDown => Buttons.DPadDown,
+                Sdl.GameController.Button.DpadLeft => Buttons.DPadLeft,
+                Sdl.GameController.Button.DpadRight => Buttons.DPadRight,
+                _ => Buttons.None,
+            };
+        }
+
+        internal static int FromSDLPacketNumber(uint packetNumber)
+        {
+            return packetNumber < int.MaxValue ? (int)packetNumber : (int)(packetNumber - (uint)int.MaxValue);
+        }
+
+        internal static void ChangeButton(int instanceid, uint packetNumber, byte sdlBtn, short value)
+        {
+            if (!TryGetGamePadInfo(instanceid, out var info))
+                return;
+        
+            var btn = FromSDLButton((Sdl.GameController.Button)sdlBtn);
+
+            if (value == 0)
+                info.Buttons &= ~btn;
+            else
+                info.Buttons |= btn;
+
+            info.PacketNumber = FromSDLPacketNumber(packetNumber);
+        }
+
+        internal static void ChangeAxis(int instanceid, uint packetNumber, byte sdlAxis, short value)
+        {
+            if (!TryGetGamePadInfo(instanceid, out var info))
+                return;
+        
+            switch ((Sdl.GameController.Axis)sdlAxis)
+            {
+                case Sdl.GameController.Axis.LeftX:
+                    info.ThumbstickL.X = GetFromSdlAxis(value);
+                    break;
+                case Sdl.GameController.Axis.LeftY:
+                    info.ThumbstickL.Y = GetFromSdlAxis(value) * -1f;
+                    break;
+                case Sdl.GameController.Axis.RightX:
+                    info.ThumbstickR.X = GetFromSdlAxis(value);
+                    break;
+                case Sdl.GameController.Axis.RightY:
+                    info.ThumbstickR.Y = GetFromSdlAxis(value) * -1f;
+                    break;
+                case Sdl.GameController.Axis.TriggerLeft:
+                    info.TriggerL = GetFromSdlAxis(value);
+                    if(info.TriggerL > 0f)
+                        info.Buttons |= Buttons.LeftTrigger;
+                    else
+                        info.Buttons &= ~Buttons.LeftTrigger;
+                    break;
+                case Sdl.GameController.Axis.TriggerRight:
+                    info.TriggerR = GetFromSdlAxis(value);
+                    if(info.TriggerR > 0f)
+                        info.Buttons |= Buttons.RightTrigger;
+                    else
+                        info.Buttons &= ~Buttons.RightTrigger;
+                    break;
             }
+
+            info.PacketNumber = FromSDLPacketNumber(packetNumber);
+        }
+
+        private static bool TryGetGamePadInfo(int instanceid, out GamePadInfo info)
+        {
+            if(_translationTable.TryGetValue(instanceid, out var index) && Gamepads.TryGetValue(index, out info))
+                return true;
+            info = default;
+            return false;
         }
 
         private static void DisposeDevice(GamePadInfo info)
@@ -91,10 +173,10 @@ namespace Microsoft.Xna.Framework.Input
 
         private static GamePadCapabilities PlatformGetCapabilities(int index)
         {
-            if (!Gamepads.ContainsKey(index))
+            if (!Gamepads.TryGetValue(index, out var info))
                 return new GamePadCapabilities();
 
-            var gamecontroller = Gamepads[index].Device;
+            var gamecontroller = info.Device;
             var caps = new GamePadCapabilities();
 
             caps.IsConnected = true;
@@ -138,60 +220,26 @@ namespace Microsoft.Xna.Framework.Input
 
         private static GamePadState PlatformGetState(int index, GamePadDeadZone leftDeadZoneMode, GamePadDeadZone rightDeadZoneMode)
         {
-            if (!Gamepads.ContainsKey(index))
+            if (!Gamepads.TryGetValue(index, out var info))
                 return GamePadState.Default;
+    
+            return new GamePadState(
+                new GamePadThumbSticks(info.ThumbstickL, info.ThumbstickR, leftDeadZoneMode, rightDeadZoneMode),
+                new GamePadTriggers(info.TriggerL, info.TriggerR),
+                new GamePadButtons(info.Buttons),
+                new GamePadDPad(info.Buttons));
+        }
 
-            var gamepadInfo = Gamepads[index];
-            var gdevice = gamepadInfo.Device;
+        private static void PlatformResetState(int index)
+        {
+            if (!Gamepads.TryGetValue(index, out var info))
+                return;
 
-            // Y gamepad axis is rotate between SDL and XNA
-            var thumbSticks =
-                new GamePadThumbSticks(
-                    new Vector2(
-                        GetFromSdlAxis(Sdl.GameController.GetAxis(gdevice, Sdl.GameController.Axis.LeftX)),
-                        GetFromSdlAxis(Sdl.GameController.GetAxis(gdevice, Sdl.GameController.Axis.LeftY)) * -1f
-                    ),
-                    new Vector2(
-                        GetFromSdlAxis(Sdl.GameController.GetAxis(gdevice, Sdl.GameController.Axis.RightX)),
-                        GetFromSdlAxis(Sdl.GameController.GetAxis(gdevice, Sdl.GameController.Axis.RightY)) * -1f
-                    ),
-                    leftDeadZoneMode,
-                    rightDeadZoneMode
-                );
-
-            var triggers = new GamePadTriggers(
-                GetFromSdlAxis(Sdl.GameController.GetAxis(gdevice, Sdl.GameController.Axis.TriggerLeft)),
-                GetFromSdlAxis(Sdl.GameController.GetAxis(gdevice, Sdl.GameController.Axis.TriggerRight))
-            );
-
-            var buttons =
-                new GamePadButtons(
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.A) == 1) ? Buttons.A : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.B) == 1) ? Buttons.B : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.Back) == 1) ? Buttons.Back : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.Guide) == 1) ? Buttons.BigButton : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.LeftShoulder) == 1) ? Buttons.LeftShoulder : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.RightShoulder) == 1) ? Buttons.RightShoulder : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.LeftStick) == 1) ? Buttons.LeftStick : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.RightStick) == 1) ? Buttons.RightStick : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.Start) == 1) ? Buttons.Start : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.X) == 1) ? Buttons.X : 0) |
-                    ((Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.Y) == 1) ? Buttons.Y : 0) |
-                    ((triggers.Left > 0f) ? Buttons.LeftTrigger : 0) |
-                    ((triggers.Right > 0f) ? Buttons.RightTrigger : 0)
-                );
-
-            var dPad =
-                new GamePadDPad(
-                    (Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.DpadUp) == 1) ? ButtonState.Pressed : ButtonState.Released,
-                    (Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.DpadDown) == 1) ? ButtonState.Pressed : ButtonState.Released,
-                    (Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.DpadLeft) == 1) ? ButtonState.Pressed : ButtonState.Released,
-                    (Sdl.GameController.GetButton(gdevice, Sdl.GameController.Button.DpadRight) == 1) ? ButtonState.Pressed : ButtonState.Released
-                );
-
-            var ret = new GamePadState(thumbSticks, triggers, buttons, dPad);
-            ret.PacketNumber = gamepadInfo.PacketNumber;
-            return ret;
+            info.Buttons = default;
+            info.ThumbstickL = default;
+            info.ThumbstickR = default;
+            info.TriggerL = default;
+            info.TriggerR = default;
         }
 
         private static bool PlatformSetVibration(int index, float leftMotor, float rightMotor, float leftTrigger, float rightTrigger)

@@ -123,6 +123,10 @@ internal static class Sdl
         [FieldOffset(0)]
         public Joystick.DeviceEvent JoystickDevice;
         [FieldOffset(0)]
+        public GameController.AxisEvent ControllerAxis;
+        [FieldOffset(0)]
+        public GameController.ButtonEvent ControllerButton;
+        [FieldOffset(0)]
         public GameController.DeviceEvent ControllerDevice;
         [FieldOffset(0)]
         public Drop.Event Drop;
@@ -976,7 +980,7 @@ internal static class Sdl
             Max,
         }
 
-        public enum Button
+        public enum Button : sbyte
         {
             Invalid = -1,
             A,
@@ -995,6 +999,32 @@ internal static class Sdl
             DpadLeft,
             DpadRight,
             Max,
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct AxisEvent
+        {
+            public EventType Type;
+            public uint TimeStamp;
+            public int Which;
+            public byte Axis;
+            public byte padding1;
+            public byte padding2;
+            public byte padding3;
+            public short Value;
+            public ushort padding4;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ButtonEvent
+        {
+            public EventType Type;
+            public uint TimeStamp;
+            public int Which;
+            public byte Button;
+            public byte State;
+            public byte padding1;
+            public byte padding2;
         }
 
         [StructLayout(LayoutKind.Sequential)]

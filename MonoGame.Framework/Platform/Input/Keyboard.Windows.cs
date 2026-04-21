@@ -67,7 +67,7 @@ namespace Microsoft.Xna.Framework.Input
         }
 
 
-        private static void PlatformReset()
+        private static void PlatformResetState()
         {
             // Get's a fresh keyboard state each frame
         }

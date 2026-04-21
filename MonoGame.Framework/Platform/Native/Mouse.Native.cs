@@ -27,6 +27,10 @@ public static partial class Mouse
         return window.MouseState;
     }
 
+    private static void PlatformResetState(GameWindow window)
+    {
+    }
+
     private static unsafe void PlatformSetPosition(int x, int y)
     {
         // TODO: Multiple window support.

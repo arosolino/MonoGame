@@ -186,6 +186,10 @@ namespace Microsoft.Xna.Framework.Input
                 new GamePadDPad(gamePad._buttons));
         }
 
+        private static void PlatformResetState(int index)
+        {
+        }
+
         private static bool PlatformSetVibration(int index, float leftMotor, float rightMotor, float leftTrigger, float rightTrigger)
         {
             var gamePad = GamePads[index];

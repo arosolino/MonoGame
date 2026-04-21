@@ -201,5 +201,9 @@ namespace Microsoft.Xna.Framework.Input
 
             joystickState.IsConnected = true;
         }
+
+        private static void PlatformResetState(int index)
+        {
+        }
     }
 }

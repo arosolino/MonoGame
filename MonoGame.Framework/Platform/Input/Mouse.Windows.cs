@@ -45,5 +45,9 @@ namespace Microsoft.Xna.Framework.Input
         {
             _window.Cursor = cursor.Cursor;
         }
+
+        private static void PlatformResetState(GameWindow window)
+        {
+        }
     }
 }

@@ -40,6 +40,10 @@ namespace Microsoft.Xna.Framework.Input
         {
 
         }
+
+        private static void PlatformResetState(int index)
+        {
+        }
     }
 }
 

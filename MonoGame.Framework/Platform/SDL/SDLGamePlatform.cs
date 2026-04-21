@@ -134,9 +134,13 @@ namespace Microsoft.Xna.Framework
                         GamePad.RemoveDevice(ev.ControllerDevice.Which);
                         break;
                     case Sdl.EventType.ControllerButtonUp:
+                        GamePad.ChangeButton(ev.ControllerButton.Which, ev.ControllerButton.TimeStamp, ev.ControllerButton.Button, 0);
+                        break;
                     case Sdl.EventType.ControllerButtonDown:
+                        GamePad.ChangeButton(ev.ControllerButton.Which, ev.ControllerButton.TimeStamp, ev.ControllerButton.Button, 1);
+                        break;
                     case Sdl.EventType.ControllerAxisMotion:
-                        GamePad.UpdatePacketInfo(ev.ControllerDevice.Which, ev.ControllerDevice.TimeStamp);
+                        GamePad.ChangeAxis(ev.ControllerAxis.Which, ev.ControllerAxis.TimeStamp, ev.ControllerAxis.Axis, ev.ControllerAxis.Value);
                         break;
                     case Sdl.EventType.MouseWheel:
                         const int wheelDelta = 120;
