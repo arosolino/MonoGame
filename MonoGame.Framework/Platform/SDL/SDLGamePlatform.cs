@@ -47,6 +47,8 @@ namespace Microsoft.Xna.Framework
             if (Sdl.version >= minVersion && CurrentPlatform.OS == OS.Windows && Debugger.IsAttached)
                 Sdl.SetHint("SDL_WINDOWS_DISABLE_THREAD_NAMING", "1");
 
+            //Sdl.SetHint("SDL_JOYSTICK_RAWINPUT", "0");
+
             _dropList = new List<string>();
 
             Sdl.Init((int)(
@@ -125,7 +127,7 @@ namespace Microsoft.Xna.Framework
                         Game.Exit();
                         break;
                     case Sdl.EventType.JoyDeviceAdded:
-                        Joystick.AddDevices();
+                        Joystick.AddDevice(ev.JoystickDevice.Which);
                         break;
                     case Sdl.EventType.JoyDeviceRemoved:
                         Joystick.RemoveDevice(ev.JoystickDevice.Which);
@@ -134,9 +136,11 @@ namespace Microsoft.Xna.Framework
                         GamePad.RemoveDevice(ev.ControllerDevice.Which);
                         break;
                     case Sdl.EventType.ControllerButtonUp:
+                        System.Diagnostics.Debug.WriteLine($"Controller Button Up: {ev.ControllerButton.Button}");
                         GamePad.ChangeButton(ev.ControllerButton.Which, ev.ControllerButton.TimeStamp, ev.ControllerButton.Button, 0);
                         break;
                     case Sdl.EventType.ControllerButtonDown:
+                            System.Diagnostics.Debug.WriteLine($"Controller Button Down: {ev.ControllerButton.Button}");
                         GamePad.ChangeButton(ev.ControllerButton.Which, ev.ControllerButton.TimeStamp, ev.ControllerButton.Button, 1);
                         break;
                     case Sdl.EventType.ControllerAxisMotion:

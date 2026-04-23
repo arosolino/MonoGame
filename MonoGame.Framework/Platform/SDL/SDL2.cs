@@ -16,7 +16,7 @@ internal static class Sdl
     private static IntPtr GetNativeLibrary()
     {
         if (CurrentPlatform.OS == OS.Windows)
-            return FuncLoader.LoadLibraryExt("SDL2.dll");
+            return FuncLoader.LoadLibraryExt("SDL2d.dll");
         else if (CurrentPlatform.OS == OS.Linux)
             return FuncLoader.LoadLibraryExt("libSDL2-2.0.so.0");
         else if (CurrentPlatform.OS == OS.MacOSX)
@@ -889,6 +889,15 @@ internal static class Sdl
         public static IntPtr FromInstanceID(int joyid)
         {
             return GetError(SDL_JoystickFromInstanceID(joyid));
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate int d_sdl_joystick_getdeviceinstanceid(int deviceIndex);
+        private static d_sdl_joystick_getdeviceinstanceid SDL_JoystickGetDeviceInstanceID = FuncLoader.LoadFunction<d_sdl_joystick_getdeviceinstanceid>(NativeLibrary, "SDL_JoystickGetDeviceInstanceID");
+
+        public static int GetDeviceInstanceID(int deviceIndex)
+        {
+            return GetError(SDL_JoystickGetDeviceInstanceID(deviceIndex));
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

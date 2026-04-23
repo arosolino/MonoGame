@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using static Sdl;
 
 namespace Microsoft.Xna.Framework.Input
 {
@@ -11,13 +12,6 @@ namespace Microsoft.Xna.Framework.Input
     {
         internal static Dictionary<int, IntPtr> Joysticks = new Dictionary<int, IntPtr>();
         private static int _lastConnectedIndex = -1;
-
-        internal static void AddDevices()
-        {
-            int numJoysticks = Sdl.Joystick.NumJoysticks();
-            for (int i = 0; i < numJoysticks; i++)
-                AddDevice(i);
-        }
 
         internal static void AddDevice(int deviceId)
         {
@@ -38,23 +32,42 @@ namespace Microsoft.Xna.Framework.Input
                 GamePad.AddDevice(deviceId);
         }
 
-        internal static void RemoveDevice(int instanceid)
+        internal static void RemoveDevice(int instanceId)
+        {
+            var id = FindDevice(instanceId);
+            if (id == -1)
+                return;
+
+            Sdl.Joystick.Close(Joysticks[id]);
+            Joysticks.Remove(id);
+
+            if (id == _lastConnectedIndex)
+                RecalculateLastConnectedIndex();
+        }
+
+        internal static int FindDevice(int instanceId)
         {
             foreach (KeyValuePair<int, IntPtr> entry in Joysticks)
             {
-                if (Sdl.Joystick.InstanceID(entry.Value) == instanceid)
+                if (Sdl.Joystick.InstanceID(entry.Value) == instanceId)
                 {
-                    int key = entry.Key;
-
-                    Sdl.Joystick.Close(Joysticks[entry.Key]);
-                    Joysticks.Remove(entry.Key);
-
-                    if (key == _lastConnectedIndex)
-                        RecalculateLastConnectedIndex();
-
-                    break;
+                    return entry.Key;
                 }
             }
+            return -1;
+        }
+
+        internal static void ResetDevice(int deviceId)
+        {
+            var instanceid = Sdl.Joystick.GetDeviceInstanceID(deviceId);
+
+            var id = FindDevice(instanceid);
+            if (id == -1)
+                return;
+
+            var joystick = Joysticks[id];
+            Sdl.Joystick.Close(joystick);
+            Joysticks[id] = Sdl.Joystick.Open(deviceId);
         }
 
         internal static void CloseDevices()

@@ -2,10 +2,10 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
 
+using MonoGame.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using MonoGame.Framework.Utilities;
 
 namespace Microsoft.Xna.Framework.Input
 {
@@ -158,6 +158,31 @@ namespace Microsoft.Xna.Framework.Input
             Sdl.GameController.Close(info.Device);
         }
 
+        private static int GetDeviceId(GamePadInfo info)
+        {
+            var instanceid = Sdl.Joystick.InstanceID(Sdl.GameController.GetJoystick(info.Device));
+            var n = Sdl.Joystick.NumJoysticks();
+            for (var i = 0; i < n; i++)
+            {
+                if (Sdl.Joystick.GetDeviceInstanceID(i) == instanceid)
+                    return i;
+            }
+            return -1;
+        }
+
+        private static void ResetDevice(GamePadInfo info)
+        {
+            var deviceId = GetDeviceId(info);
+            if(deviceId == -1)
+                return;
+
+            DisposeDevice(info);
+
+            Joystick.ResetDevice(deviceId);
+
+            info.Device = Sdl.GameController.Open(deviceId);
+        }
+
         internal static void CloseDevices()
         {
             foreach (var entry in Gamepads)
@@ -240,6 +265,8 @@ namespace Microsoft.Xna.Framework.Input
             info.ThumbstickR = default;
             info.TriggerL = default;
             info.TriggerR = default;
+
+            ResetDevice(info);
         }
 
         private static bool PlatformSetVibration(int index, float leftMotor, float rightMotor, float leftTrigger, float rightTrigger)
