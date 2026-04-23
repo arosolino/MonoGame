@@ -901,6 +901,16 @@ internal static class Sdl
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate int d_sdl_joystick_getdeviceindexfrominstanceid(int instanceId);
+        private static d_sdl_joystick_getdeviceindexfrominstanceid SDL_JoystickGetDeviceIndexFromInstanceID = FuncLoader.LoadFunction<d_sdl_joystick_getdeviceindexfrominstanceid>(NativeLibrary, "SDL_JoystickGetDeviceIndexFromInstanceID");
+
+        public static int GetDeviceIndexFromInstanceID(int instanceId)
+        {
+            return GetError(SDL_JoystickGetDeviceIndexFromInstanceID(instanceId));
+        }
+
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate short d_sdl_joystickgetaxis(IntPtr joystick, int axis);
         public static d_sdl_joystickgetaxis GetAxis = FuncLoader.LoadFunction<d_sdl_joystickgetaxis>(NativeLibrary, "SDL_JoystickGetAxis");
 

@@ -158,27 +158,17 @@ namespace Microsoft.Xna.Framework.Input
             Sdl.GameController.Close(info.Device);
         }
 
-        private static int GetDeviceId(GamePadInfo info)
-        {
-            var instanceid = Sdl.Joystick.InstanceID(Sdl.GameController.GetJoystick(info.Device));
-            var n = Sdl.Joystick.NumJoysticks();
-            for (var i = 0; i < n; i++)
-            {
-                if (Sdl.Joystick.GetDeviceInstanceID(i) == instanceid)
-                    return i;
-            }
-            return -1;
-        }
-
         private static void ResetDevice(GamePadInfo info)
         {
-            var deviceId = GetDeviceId(info);
+            var joystick = Sdl.GameController.GetJoystick(info.Device);
+            var instanceid = Sdl.Joystick.InstanceID(joystick);
+            var deviceId = Joystick.GetDeviceIndexFromInstanceId(instanceid);
             if(deviceId == -1)
                 return;
 
             DisposeDevice(info);
 
-            Joystick.ResetDevice(deviceId);
+            Joystick.ResetDevice(deviceId, instanceid);
 
             info.Device = Sdl.GameController.Open(deviceId);
         }

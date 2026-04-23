@@ -57,10 +57,19 @@ namespace Microsoft.Xna.Framework.Input
             return -1;
         }
 
-        internal static void ResetDevice(int deviceId)
+        internal static int GetDeviceIndexFromInstanceId(int instanceid)
         {
-            var instanceid = Sdl.Joystick.GetDeviceInstanceID(deviceId);
+            var n = Sdl.Joystick.NumJoysticks();
+            for (var i = 0; i < n; i++)
+            {
+                if (Sdl.Joystick.GetDeviceInstanceID(i) == instanceid)
+                    return i;
+            }
+            return -1;
+        }
 
+        internal static void ResetDevice(int deviceId, int instanceid)
+        {
             var id = FindDevice(instanceid);
             if (id == -1)
                 return;
