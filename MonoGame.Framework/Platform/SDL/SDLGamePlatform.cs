@@ -136,11 +136,9 @@ namespace Microsoft.Xna.Framework
                         GamePad.RemoveDevice(ev.ControllerDevice.Which);
                         break;
                     case Sdl.EventType.ControllerButtonUp:
-                        System.Diagnostics.Debug.WriteLine($"Controller Button Up: {ev.ControllerButton.Button}");
                         GamePad.ChangeButton(ev.ControllerButton.Which, ev.ControllerButton.TimeStamp, ev.ControllerButton.Button, 0);
                         break;
                     case Sdl.EventType.ControllerButtonDown:
-                            System.Diagnostics.Debug.WriteLine($"Controller Button Down: {ev.ControllerButton.Button}");
                         GamePad.ChangeButton(ev.ControllerButton.Which, ev.ControllerButton.TimeStamp, ev.ControllerButton.Button, 1);
                         break;
                     case Sdl.EventType.ControllerAxisMotion:

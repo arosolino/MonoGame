@@ -13,9 +13,9 @@ namespace Microsoft.Xna.Framework.Input
         internal static Dictionary<int, IntPtr> Joysticks = new Dictionary<int, IntPtr>();
         private static int _lastConnectedIndex = -1;
 
-        internal static void AddDevice(int deviceId)
+        internal static void AddDevice(int deviceIndex)
         {
-            var jdevice = Sdl.Joystick.Open(deviceId);
+            var jdevice = Sdl.Joystick.Open(deviceIndex);
             if (Joysticks.ContainsValue(jdevice)) return;
 
             var id = 0;
@@ -28,8 +28,8 @@ namespace Microsoft.Xna.Framework.Input
 
             Joysticks.Add(id, jdevice);
 
-            if (Sdl.GameController.IsGameController(deviceId) == 1)
-                GamePad.AddDevice(deviceId);
+            if (Sdl.GameController.IsGameController(deviceIndex) == 1)
+                GamePad.AddDevice(deviceIndex);
         }
 
         internal static void RemoveDevice(int instanceId)
@@ -68,7 +68,7 @@ namespace Microsoft.Xna.Framework.Input
             return -1;
         }
 
-        internal static void ResetDevice(int deviceId, int instanceid)
+        internal static void ResetDevice(int deviceIndex, int instanceid)
         {
             var id = FindDevice(instanceid);
             if (id == -1)
@@ -76,7 +76,7 @@ namespace Microsoft.Xna.Framework.Input
 
             var joystick = Joysticks[id];
             Sdl.Joystick.Close(joystick);
-            Joysticks[id] = Sdl.Joystick.Open(deviceId);
+            Joysticks[id] = Sdl.Joystick.Open(deviceIndex);
         }
 
         internal static void CloseDevices()
