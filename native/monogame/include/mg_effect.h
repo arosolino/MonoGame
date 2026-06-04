@@ -4,10 +4,10 @@
 
 #pragma once
 #include <string.h>
-#include <gxdk.resources.h>
-#include <windows.h>
 
 #if defined(_GAMING_XBOX)
+#include <gxdk.resources.h>
+#include <windows.h>
 void MGG_EffectResource_GetBytecode(const char* name, mgbyte*& bytecode, mgint& size)
 {
     bytecode = nullptr;
