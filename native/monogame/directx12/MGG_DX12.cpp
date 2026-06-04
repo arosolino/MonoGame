@@ -6,12 +6,14 @@
 
 #include "mg_common.h"
 
+#if !defined(_GAMING_XBOX)
 #include "AlphaTestEffect.dx12.mgfxo.h"
 #include "BasicEffect.dx12.mgfxo.h"
 #include "DualTextureEffect.dx12.mgfxo.h"
 #include "EnvironmentMapEffect.dx12.mgfxo.h"
 #include "SkinnedEffect.dx12.mgfxo.h"
 #include "SpriteEffect.dx12.mgfxo.h"
+#endif
 #include "mg_effect.h"
 
 #include "directx12.h"
