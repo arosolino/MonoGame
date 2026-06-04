@@ -71,6 +71,18 @@ public:
                 delete m_msaaTargets[n];
         }
         m_commandContext.reset();
+        m_transientBufferPool.Reset();
+        m_heaps.reset();
+        m_commandListPool.reset();
+#if !defined(_GAMING_XBOX)
+        m_swapChain.Reset();
+#endif
+        m_d3dDevice.Reset();
+#if !defined(_GAMING_XBOX)
+        m_dxgiFactory.Reset();
+#endif
+        // Must be last as it will dump memory leaks.
+        m_allocator.Reset();
     }
 
 #if defined(_GAMING_XBOX)
@@ -229,7 +241,7 @@ public:
 
 #if defined(_GAMING_XBOX)
         for (UINT n = 0; n < m_backBufferCount; n++) {
-            m_displayTargets[n] = new Texture(SurfaceType::SwapChainRenderTarget, TextureDimension::Texture2D, width, height, 1, m_backBufferFormat);
+            m_displayTargets[n] = new Texture(SurfaceType::SwapChainRenderTarget, TextureDimension::Texture2D, width, height, 1, 1, m_backBufferFormat);
             m_displayTargets[n]->SetClearColor(r, g, b, a);
             m_displayTargets[n]->Create(device);
         }
