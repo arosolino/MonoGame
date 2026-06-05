@@ -38,7 +38,6 @@ void MGG_EffectResource_GetBytecode(const char* name, mgbyte*& bytecode, mgint& 
         (LPCWSTR)&MGG_EffectResource_GetBytecode,
         &module);
 
-    // CAn't find resource
     HRSRC resource = FindResourceW(
         module,
         MAKEINTRESOURCEW(id),
