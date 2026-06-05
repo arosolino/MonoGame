@@ -21,7 +21,7 @@ public:
     void InsertWaitForQueue(CommandQueue* otherQueue);
 
     void WaitForFenceCPUBlocking(uint64_t fenceValue);
-    void WaitForIdle() { WaitForFenceCPUBlocking(SignalFence()); }
+    void WaitForIdle() { WaitForFenceCPUBlocking(m_nextFenceValue - 1); }
     uint64_t SignalFence();
 
     ID3D12CommandQueue* Get() { return m_queue.Get(); }
@@ -42,10 +42,12 @@ private:
     std::wstring m_name;
 
     std::mutex m_fenceMutex;
+    std::mutex m_eventMutex;
 
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
-    std::atomic<uint64_t> m_lastCompletedFenceValue = 0;
-    std::atomic<uint64_t> m_nextFenceValue = 1;
+    uint64_t m_lastCompletedFenceValue = 0;
+    uint64_t m_nextFenceValue = m_lastCompletedFenceValue + 1;
+    Microsoft::WRL::Wrappers::Event m_fenceEvent;
 };
 
 // Simplification of https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/CommandAllocatorPool.cpp
@@ -54,8 +56,6 @@ struct CommandList;
 
 class CommandListPool {
     ID3D12Device* m_device = nullptr;
-
-    std::mutex m_queueMutex;
 
     D3D12_COMMAND_LIST_TYPE  m_type;
     std::wstring m_name;
