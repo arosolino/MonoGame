@@ -364,6 +364,8 @@ public:
 
         HandleLost(m_swapChain->Present(sync, flags));
 
+        m_fenceValues[m_backBufferIndex] = m_commandListPool->GetCommandQueue()->SignalFence();
+
         m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
     }
 
