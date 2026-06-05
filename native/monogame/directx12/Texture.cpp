@@ -413,12 +413,14 @@ void Graphics::Texture::SetData(DeviceResources* device, uint32_t subResId, uint
     auto cmd = device->BeginCommandList();
     auto cmdList = cmd->Get();
 
+    std::vector<D3D12_RESOURCE_BARRIER> batch;
+
+    intermediateTexture->TransitionBatched(batch, D3D12_RESOURCE_STATE_COPY_SOURCE);
     if (impl->m_currentState != D3D12_RESOURCE_STATE_COPY_DEST)
-    {
-        const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-            impl->m_res.Get(), impl->m_currentState, D3D12_RESOURCE_STATE_COPY_DEST);
-        cmdList->ResourceBarrier(1, &barrier);
-    }
+        batch.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
+            impl->m_res.Get(), impl->m_currentState, D3D12_RESOURCE_STATE_COPY_DEST
+        ));
+    Texture::SendTransitionBatch(batch, cmdList);
 
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
     footprint.Footprint.Width = static_cast<UINT>(copyDesc.Width);
@@ -446,21 +448,12 @@ void Graphics::Texture::SetData(DeviceResources* device, uint32_t subResId, uint
 #define TEXTURE_DATA_PITCH_ALIGNMENT D3D12_TEXTURE_DATA_PITCH_ALIGNMENT
 #endif
 
-void Graphics::Texture::GetData(DeviceResources* device, uint32_t subResId, uint32_t x, uint32_t y, uint32_t z, uint32_t w, uint32_t h, uint32_t d, uint8_t* data, size_t dataSize)
-{
-    D3D12_RESOURCE_DESC copyDesc;
-    switch (impl->m_dimension)
-    {
-    default:
-    case TextureDimension::Texture2D:
-    case TextureDimension::TextureCube:
-        copyDesc = CD3DX12_RESOURCE_DESC::Tex2D(impl->m_desc.Format, w, h, d);
-        break;
-    case TextureDimension::Texture3D:
-        copyDesc = CD3DX12_RESOURCE_DESC::Tex3D(impl->m_desc.Format, w, h, d);
-        break;
-    }
+void Graphics::Texture::GetData(DeviceResources* device, uint32_t subResId, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t* data, size_t srcStride, size_t destStride) {
+    // If this is a render target block until the last frame is finished rendering.
+    if (impl->m_type == SurfaceType::RenderTarget)
+        device->WaitForGpu();
 
+    D3D12_RESOURCE_DESC copyDesc = CD3DX12_RESOURCE_DESC::Tex2D(impl->m_desc.Format, w, h);
     UINT64 readbackBufferSize = 0;
     UINT64 fpRowPitch = 0;
     device->GetD3DDevice()->GetCopyableFootprints(&copyDesc, 0, 1, 0, nullptr, nullptr, &fpRowPitch, &readbackBufferSize);
@@ -499,10 +492,13 @@ void Graphics::Texture::GetData(DeviceResources* device, uint32_t subResId, uint
     D3D12_BOX sourceRegion { x, y, z, x + w, y + h, z + d };
     cmdList->CopyTextureRegion(&copyDest, 0, 0, 0, &copySrc, &sourceRegion);
 
-    const D3D12_RESOURCE_BARRIER revertBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        impl->m_res.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, impl->m_currentState
-    );
-    cmdList->ResourceBarrier(1, &revertBarrier);
+    if (impl->m_currentState != D3D12_RESOURCE_STATE_COPY_SOURCE)
+    {
+        const D3D12_RESOURCE_BARRIER revertBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            impl->m_res.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, impl->m_currentState
+        );
+        cmdList->ResourceBarrier(1, &revertBarrier);
+    }
 
     cmd->Close(true);
 
@@ -572,9 +568,7 @@ void Texture::AllowUAV() {
     impl->m_desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 }
 
-std::vector<D3D12_RESOURCE_BARRIER> Texture::s_batchedBarriers = {};
-
-void Texture::TransitionBatched(D3D12_RESOURCE_STATES newState) {
+void Texture::TransitionBatched(std::vector<D3D12_RESOURCE_BARRIER>& batch, D3D12_RESOURCE_STATES newState) {
     if (impl->m_currentState == newState)
         return;
 
@@ -583,26 +577,26 @@ void Texture::TransitionBatched(D3D12_RESOURCE_STATES newState) {
     if (impl->m_type == SurfaceType::SwapChainRenderTarget && newState == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
         return;
 
-    s_batchedBarriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
+    batch.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
         impl->m_res.Get(), impl->m_currentState, newState
     ));
     impl->m_currentState = newState;
 }
 
-void Texture::TransitionBatched(D3D12_RESOURCE_STATES oldState, D3D12_RESOURCE_STATES newState, UINT subresource) {
-    s_batchedBarriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
+void Texture::TransitionBatched(std::vector<D3D12_RESOURCE_BARRIER>& batch, D3D12_RESOURCE_STATES oldState, D3D12_RESOURCE_STATES newState, UINT subresource) {
+    batch.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
         impl->m_res.Get(), oldState, newState, subresource
     ));
 }
 
-void Texture::SendTransitionBatch(ID3D12GraphicsCommandList* commandList) {
-    if (s_batchedBarriers.empty())
+void Texture::SendTransitionBatch(std::vector<D3D12_RESOURCE_BARRIER>& batch, ID3D12GraphicsCommandList* commandList) {
+    if (batch.empty())
         return;
-    commandList->ResourceBarrier(s_batchedBarriers.size(), s_batchedBarriers.data());
-    s_batchedBarriers.clear();
+    commandList->ResourceBarrier(batch.size(), batch.data());
+    batch.clear();
 }
 
-void Texture::Transition(ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES newState) {
-    TransitionBatched(newState);
-    SendTransitionBatch(commandList);
+void Texture::Transition(std::vector<D3D12_RESOURCE_BARRIER>& batch, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES newState) {
+    TransitionBatched(batch, newState);
+    SendTransitionBatch(batch, commandList);
 }
