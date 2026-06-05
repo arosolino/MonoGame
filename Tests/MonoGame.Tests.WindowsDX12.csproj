@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,6 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateProgramFile>false</GenerateProgramFile>
     <DefineConstants>WINDOWS;DIRECTX12</DefineConstants>
+    <Platforms>AnyCPU;ARM64;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +20,7 @@
   <ItemGroup>
     <Compile Remove="bin\**\*" />
     <Compile Remove="Framework\WindowsDX\**" />
-    <Compile Remove="obj\**\*" />
+    <Compile Remove="obj\**" />
     <Compile Remove="Properties/**/*" />
     <Compile Remove="Interactive/**/*" />
     <Compile Remove="Runner/iOS/**/*" />
@@ -38,21 +39,29 @@
 
   <ItemGroup>
     <EmbeddedResource Remove="Framework\WindowsDX\**" />
+    <EmbeddedResource Remove="obj\**" />
     <None Remove="Framework\WindowsDX\**" />
+    <None Remove="obj\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\MonoGame.Framework\MonoGame.Framework.Native.csproj" />
-    <ProjectReference Include="..\native\monogame\windowsdx.vcxproj" />
+  <PropertyGroup>
+    <NativePlatform Condition="'$(Platform)' == 'ARM64' or '$(Platform)' == 'x64'">$(Platform)</NativePlatform>
+    <NativePlatform Condition="'$(NativePlatform)' == '' And '$(PROCESSOR_ARCHITECTURE)' == 'ARM64'">ARM64</NativePlatform>
+    <NativePlatform Condition="'$(NativePlatform)' == ''">x64</NativePlatform>
+  </PropertyGroup>
 
-	  <Content Include="..\Artifacts\native\mgruntime\windowsdx\windows\$(Configuration)\mgruntime.dll">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </Content>
-	  
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Framework\Audio\" />
-  </ItemGroup>
-
+    <ItemGroup>
+		<ProjectReference Include="..\MonoGame.Framework\MonoGame.Framework.Native.csproj" />
+	
+		<NativeLib Include="..\Artifacts\native\mgruntime\windowsdx\windows\$(NativePlatform)\$(Configuration)\mgruntime.dll" Condition="Exists('..\Artifacts\native\mgruntime\windowsdx\windows\$(NativePlatform)\$(Configuration)\mgruntime.dll')" PackagePath="runtimes\win-$(NativePlatform)\native" />
+    </ItemGroup>
+	
+	<ItemGroup>
+		<Content Include="@(NativeLib)" Visible="false">
+			<PackagePath>%(PackagePath)</PackagePath>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<UpToDateCheckBuilt Include="@(NativeLib->'$(OutputPath)%(Filename)%(Extension)')"><Original>%(Identity)</Original></UpToDateCheckBuilt>
+	</ItemGroup>
+	
 </Project>

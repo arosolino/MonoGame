@@ -344,6 +344,12 @@ namespace Microsoft.Xna.Framework.Graphics
 
             framebufferHelper = FramebufferHelper.Create(this);
 
+            if (GraphicsCapabilities.SupportsSRgb)
+            {
+                GL.Enable(EnableCap.FramebufferSrgb);
+                GraphicsExtensions.CheckGLError();
+            }
+
             // Force resetting states
             this.PlatformApplyBlend(true);
             this.DepthStencilState.PlatformApplyState(this, true);
@@ -1272,11 +1278,14 @@ namespace Microsoft.Xna.Framework.Graphics
         {
             return new Rectangle(x, y, width, height);
         }
-        
-        internal void PlatformSetMultiSamplingToMaximum(PresentationParameters presentationParameters, out int quality)
+
+        internal int PlatformGetMaxMultiSampleCount(SurfaceFormat sformat)
         {
-            presentationParameters.MultiSampleCount = 4;
-            quality = 0;
+            // For OpenGL we don't seem to check the correct setting per-format.
+
+            int maxMultiSampleCount;
+            GL.GetInteger(GetPName.MaxSamples, out maxMultiSampleCount);
+            return maxMultiSampleCount;
         }
 
         internal void OnPresentationChanged()

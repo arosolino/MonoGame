@@ -103,20 +103,21 @@ uint64_t CommandContext::Close() {
     return fence;
 }
 
-void CommandContext::SetRenderTarget(void* colorTargets, size_t numColorTargets, Texture* depthTarget) {
+void CommandContext::SetRenderTarget(Texture** colorTargets, int32_t* slices, size_t numColorTargets, Texture* depthTarget)
+{
     // Only allow SetRenderTarget between Prepare and Present
     // This check should be replaced by an assert but Monogame's GraphicsDevice::Initialize() call ApplyRenderTargets(null)
     // This is here to avoid adding a platform specific define in the managed code and avoid crashing
     if (!cmdList)
         return;
 
-    std::vector<D3D12_RESOURCE_BARRIER> batch;
-
     for (auto t : m_currentRT)
         t->TransitionBatched(batch, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     m_currentRT.clear();
+    m_currentRTV.clear();
 
-    if (m_currentDepthStencil != depthTarget) {
+    if (m_currentDepthStencil != depthTarget)
+    {
         if (m_currentDepthStencil)
             m_currentDepthStencil->TransitionBatched(batch, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         if (depthTarget)
@@ -125,11 +126,10 @@ void CommandContext::SetRenderTarget(void* colorTargets, size_t numColorTargets,
 
     if (colorTargets != nullptr)
     {
-        D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8] = {};
-
-        for (auto i = 0; i < numColorTargets; i++) {
-            Texture* rt = ((Texture**)colorTargets)[i];
-            rtvs[i] = rt->GetRTV();
+        for (auto i = 0; i < numColorTargets; i++)
+        {
+            Texture* rt = colorTargets[i];
+            m_currentRTV.push_back(rt->GetRTV(slices[i]));
             m_currentRT.push_back(rt);
 
             rt->TransitionBatched(batch, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -138,22 +138,21 @@ void CommandContext::SetRenderTarget(void* colorTargets, size_t numColorTargets,
         Texture::SendTransitionBatch(batch, cmdList);
 
         if (depthTarget)
-            SetRenderTargets(numColorTargets, rtvs, depthTarget->GetDSV());
+            SetRenderTargets(numColorTargets, m_currentRTV.data(), depthTarget->GetDSV());
         else
-            SetRenderTargets(numColorTargets, rtvs);
+            SetRenderTargets(numColorTargets, m_currentRTV.data());
     }
     else
     {
+        Texture::SendTransitionBatch(cmdList);
         Texture* displayTarget = m_deviceRes->GetMainTarget();
         displayTarget->TransitionBatched(batch, D3D12_RESOURCE_STATE_RENDER_TARGET);
         m_currentRT.push_back(displayTarget);
-
-        Texture::SendTransitionBatch(batch, cmdList);
-
+        m_currentRTV.push_back(displayTarget->GetRTV(0));
         if (depthTarget)
-            SetRenderTarget(displayTarget->GetRTV(), depthTarget->GetDSV());
+            SetRenderTarget(m_currentRTV[0], depthTarget->GetDSV());
         else
-            SetRenderTarget(displayTarget->GetRTV());
+            SetRenderTarget(m_currentRTV[0]);
     }
     m_currentDepthStencil = depthTarget;
 }
@@ -274,8 +273,8 @@ void CommandContext::Clear(MGClearOptions options, float r, float g, float b, fl
 
     if (clearTarget) {
         float color[] = { r, g, b, a };
-        for (auto t : m_currentRT)
-            cmdList->ClearRenderTargetView(t->GetRTV(), color, 0, nullptr);
+        for (auto rtv : m_currentRTV)
+            cmdList->ClearRenderTargetView(rtv, color, 0, nullptr);
     }
 }
 
