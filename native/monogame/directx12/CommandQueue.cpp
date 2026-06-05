@@ -22,50 +22,39 @@ void CommandQueue::Create(ID3D12Device* device) {
     ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_GRAPHICS_PPV_ARGS(m_fence.ReleaseAndGetAddressOf())));
     m_fence->Signal(m_lastCompletedFenceValue);
     m_fence->SetName((m_name + L" Fence").c_str());
+
+    m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+    if (!m_fenceEvent.IsValid())
+        throw std::system_error(std::error_code(static_cast<int>(GetLastError()), std::system_category()), "CreateEventEx");
 }
 
 uint64_t CommandQueue::ExecuteCommandList(ID3D12CommandList* commandList) {
-
-    std::lock_guard<std::mutex> lock(m_fenceMutex);
-
     // Send the command list off to the GPU for processing.
     ThrowIfFailed(((ID3D12GraphicsCommandList*)commandList)->Close());
     m_queue->ExecuteCommandLists(1, &commandList);
 
-    // Send the signal.
-    uint64_t fenceValue = m_nextFenceValue.fetch_add(1);
-    m_queue->Signal(m_fence.Get(), fenceValue);
-    return fenceValue;
+    return SignalFence();
 }
 
 uint64_t CommandQueue::SignalFence() {
-
     std::lock_guard<std::mutex> lock(m_fenceMutex);
 
-    uint64_t fenceValue = m_nextFenceValue.fetch_add(1);
-    m_queue->Signal(m_fence.Get(), fenceValue);
-    return fenceValue;
+    m_queue->Signal(m_fence.Get(), m_nextFenceValue);
+
+    return m_nextFenceValue++;
 }
 
 
 uint64_t CommandQueue::PollCurrentFenceValue() {
-
-    uint64_t completed = m_fence->GetCompletedValue();
-    uint64_t current = m_lastCompletedFenceValue.load();
-
-    while ( completed > current &&
-            !m_lastCompletedFenceValue.compare_exchange_weak(current, completed))
-        {}
-
-    return m_lastCompletedFenceValue.load();
+    m_lastCompletedFenceValue = std::max(m_lastCompletedFenceValue, m_fence->GetCompletedValue());
+    return m_lastCompletedFenceValue;
 }
 
 bool CommandQueue::IsFenceComplete(uint64_t fenceValue) {
+    if (fenceValue > m_lastCompletedFenceValue)
+        PollCurrentFenceValue();
 
-    if (fenceValue <= m_lastCompletedFenceValue.load())
-        return true;
-
-    return fenceValue <= PollCurrentFenceValue();
+    return fenceValue <= m_lastCompletedFenceValue;
 }
 
 void CommandQueue::InsertWait(uint64_t fenceValue) {
@@ -77,9 +66,6 @@ void CommandQueue::InsertWaitForQueueFence(CommandQueue* otherQueue, uint64_t fe
 }
 
 void CommandQueue::InsertWaitForQueue(CommandQueue* otherQueue) {
-
-    std::lock_guard<std::mutex> lock(m_fenceMutex);
-
     m_queue->Wait(otherQueue->GetFence(), otherQueue->GetNextFenceValue() - 1); // Wait for the last requested fence
 }
 
@@ -87,15 +73,11 @@ void CommandQueue::WaitForFenceCPUBlocking(uint64_t fenceValue) {
     if (IsFenceComplete(fenceValue))
         return;
 
-    HANDLE evt = CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE);
-    m_fence->SetEventOnCompletion(fenceValue, evt);
-    WaitForSingleObjectEx(evt, INFINITE, FALSE);
-    CloseHandle(evt);
+    std::lock_guard<std::mutex> lock(m_fenceMutex);
 
-    uint64_t current = m_lastCompletedFenceValue.load();
-    while ( current < fenceValue &&
-            !m_lastCompletedFenceValue.compare_exchange_weak(current, fenceValue))
-        { }
+    m_fence->SetEventOnCompletion(fenceValue, m_fenceEvent.Get());
+    WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
+    m_lastCompletedFenceValue = fenceValue;
 }
 
 #ifdef _GAMING_XBOX
