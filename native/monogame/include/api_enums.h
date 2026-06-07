@@ -297,6 +297,8 @@ enum class MGEventType : mguint
     ControllerStateChange = 15,
     DropFile = 16,
     DropComplete = 17,
+    Suspend = 18,
+    Resume = 19,
 };
 
 enum class MGKeys : mgint

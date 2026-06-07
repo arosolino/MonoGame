@@ -622,6 +622,24 @@ void MGG_GraphicsDevice_Present(MGG_GraphicsDevice* device, mgint currentFrame, 
 	MGDX_DestroyFrameResources(device, device->frame, false);
 }
 
+void MGG_GraphicsDevice_Suspend(MGG_GraphicsDevice* device)
+{
+	assert(device != nullptr);
+
+#if defined(_GAMING_XBOX)
+	device->resources->Suspend();
+#endif
+}
+
+void MGG_GraphicsDevice_Resume(MGG_GraphicsDevice* device)
+{
+	assert(device != nullptr);
+
+#if defined(_GAMING_XBOX)
+	device->resources->Resume();
+#endif
+}
+
 void MGG_GraphicsDevice_SetBlendState(MGG_GraphicsDevice* device, MGG_BlendState* state, mgfloat factorR, mgfloat factorG, mgfloat factorB, mgfloat factorA)
 {
 	assert(device != nullptr);

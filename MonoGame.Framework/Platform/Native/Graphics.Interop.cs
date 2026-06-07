@@ -206,6 +206,12 @@ internal static unsafe partial class MGG
     [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_Present", ExactSpelling = true)]
     public static extern void GraphicsDevice_Present(MGG_GraphicsDevice* device, int currentFrame, int syncInterval);
 
+    [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_Suspend", ExactSpelling = true)]
+    public static extern void GraphicsDevice_Suspend(MGG_GraphicsDevice* device);
+
+    [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_Resume", ExactSpelling = true)]
+    public static extern void GraphicsDevice_Resume(MGG_GraphicsDevice* device);
+
     [DllImport(MGP.MonoGameNativeDLL, EntryPoint = "MGG_GraphicsDevice_SetBlendState", ExactSpelling = true)]
     public static extern void GraphicsDevice_SetBlendState(MGG_GraphicsDevice* device, MGG_BlendState* state, float factorR, float factorG, float factorB, float factorA);
 

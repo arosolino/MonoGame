@@ -35,6 +35,9 @@ internal enum EventType : uint
 
     DropFile,
     DropComplete,
+
+    Suspend,
+    Resume,
 }
 
 

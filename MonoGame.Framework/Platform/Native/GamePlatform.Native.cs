@@ -248,6 +248,20 @@ class NativeGamePlatform : GamePlatform
                     _dropList.Clear();
                     break;
                 }
+
+                case EventType.Suspend:
+                {
+                    if (Game.GraphicsDevice != null)
+                        MGG.GraphicsDevice_Suspend(Game.GraphicsDevice.Handle);
+                    break;
+                }
+
+                case EventType.Resume:
+                {
+                    if (Game.GraphicsDevice != null)
+                        MGG.GraphicsDevice_Resume(Game.GraphicsDevice.Handle);
+                    break;
+                }
             }
         }
     }
