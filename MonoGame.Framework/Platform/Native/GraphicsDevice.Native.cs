@@ -537,8 +537,8 @@ public partial class GraphicsDevice
 
     internal unsafe void Suspend()
     {
-        IsSuspended = true;
         MGG.GraphicsDevice_Suspend(Handle);
+        IsSuspended = true;
     }
 
     internal unsafe void Resume()
