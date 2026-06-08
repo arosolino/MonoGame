@@ -251,15 +251,13 @@ class NativeGamePlatform : GamePlatform
 
                 case EventType.Suspend:
                 {
-                    if (Game.GraphicsDevice != null)
-                        MGG.GraphicsDevice_Suspend(Game.GraphicsDevice.Handle);
+                    Game.GraphicsDevice?.Suspend();
                     break;
                 }
 
                 case EventType.Resume:
                 {
-                    if (Game.GraphicsDevice != null)
-                        MGG.GraphicsDevice_Resume(Game.GraphicsDevice.Handle);
+                    Game.GraphicsDevice?.Resume();
                     break;
                 }
             }
