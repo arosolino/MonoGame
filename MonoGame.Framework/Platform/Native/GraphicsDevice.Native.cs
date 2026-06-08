@@ -14,6 +14,22 @@ namespace Microsoft.Xna.Framework.Graphics;
 
 public partial class GraphicsDevice
 {
+    public event EventHandler<EventArgs> Suspended;
+    public event EventHandler<EventArgs> Resumed;
+    private bool _isSuspended;
+    public bool IsSuspended
+    {
+        get { return _isSuspended; }
+        internal set
+        {
+            if (_isSuspended != value)
+            {
+                _isSuspended = value;
+                EventHelpers.Raise(this, _isSuspended ? Suspended : Resumed, EventArgs.Empty);
+            }
+        }
+    }
+
     internal unsafe MGG_GraphicsDevice* Handle;
 
     internal Texture2D DefaultTexture;
@@ -517,5 +533,17 @@ public partial class GraphicsDevice
         MGG.GraphicsDevice_GetTitleSafeArea(ref x, ref y, ref width, ref height);
 
         return new Rectangle(x, y, width, height);
+    }
+
+    internal unsafe void Suspend()
+    {
+        IsSuspended = true;
+        MGG.GraphicsDevice_Suspend(Handle);
+    }
+
+    internal unsafe void Resume()
+    {
+        MGG.GraphicsDevice_Resume(Handle);
+        IsSuspended = false;
     }
 }
