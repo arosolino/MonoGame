@@ -16,6 +16,10 @@ static partial class GamePad
 
     static internal unsafe MGP_Platform* Handle;
 
+    // Need this
+    public static Action<int> OnAdd;
+    public static Action<int> OnRemove;
+
     class State
     {
         public int Identifier;
@@ -86,6 +90,7 @@ static partial class GamePad
                 state.Index = i;
                 _stateByIndex.Add(i, state);
                 _stateById.Add(identifier, state);
+                OnAdd?.Invoke(state.Index);
                 return;
             }
         }
@@ -95,6 +100,7 @@ static partial class GamePad
     {
         if (_stateById.TryGetValue(identifier, out var state))
         {
+            OnRemove?.Invoke(state.Index);
             _stateByIndex.Remove(state.Index);
             _stateById.Remove(identifier);
         }
