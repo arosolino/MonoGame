@@ -643,8 +643,6 @@ void DeviceResources::Resume() {
 #else
 
 void DeviceResources::Present(int sync, int flags) {
-    if(sync == 0)
-        flags |= DXGI_PRESENT_ALLOW_TEARING;
     pImpl->Present(sync, flags);
 }
 
