@@ -41,7 +41,7 @@ public:
     void CreateDeviceResources(IDXGIFactory6* factory, IDXGIAdapter1* adapter);
 #endif
 
-    void CreateWindowSizeDependentResources(int width, int height, float r, float g, float b, float a, int msaaCount);
+    void CreateWindowSizeDependentResources(int width, int height, float r, float g, float b, float a, int msaaCount, bool vsync);
     uint32_t Prepare();
     void WaitForGpu();
 
@@ -70,6 +70,9 @@ public:
     D3D12MA::Allocator* GetAllocator() const;
     D3D12MA::Pool* GetTransientBufferPool() const;
     Texture* GetMainTarget() const noexcept;
+
+    ID3D12Resource* TakeUploadBuffer(D3D12_HEAP_TYPE type, D3D12_RESOURCE_STATES state, D3D12_RESOURCE_DESC& desc);
+    void ReturnUploadBuffer(ID3D12Resource* buffer, uint64_t fence);
 };
 
 }
