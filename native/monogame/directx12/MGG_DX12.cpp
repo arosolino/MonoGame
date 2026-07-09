@@ -36,13 +36,7 @@ using namespace Graphics;
 using namespace Microsoft::WRL;
 
 
-bool MGG_EnableDebugLayer
-#if defined(_DEBUG)
-	= true;
-#else
-	= false;
-#endif
-
+bool MGG_EnableDebugLayer = false;
 
 typedef mguint FrameCounter;
 
@@ -539,10 +533,23 @@ void MGG_GraphicsDevice_Destroy(MGG_GraphicsDevice* device)
 	if (device->depthTexture)
 		delete device->depthTexture;
 
-	delete device->pipelineManager;
-	delete device->resources;
+	for (auto discardedBuffer : device->discarded)
+		delete discardedBuffer;
+	device->discarded.clear();
 
+	for (auto pendingBuffer : device->pending)
+		delete pendingBuffer;
+	device->pending.clear();
+
+	for (auto freeBuffer : device->free)
+		delete freeBuffer;
+	device->free.clear();
+
+	delete device->pipelineManager;
+
+	auto resources = device->resources;
 	delete device;
+	delete resources;
 }
 
 void MGG_GraphicsDevice_GetCaps(MGG_GraphicsDevice* device, MGG_GraphicsDevice_Caps& caps)
@@ -614,7 +621,7 @@ void MGG_GraphicsDevice_ResizeSwapchain(
 
 	device->vsync = syncInterval > 0;
 
-	device->resources->CreateWindowSizeDependentResources(width, height, 0, 0, 0, 0, multiSampleCount, device->vsync);
+	device->resources->CreateWindowSizeDependentResources(width, height, 0, 0, 0, 0, multiSampleCount);
 	device->begin_frame_index = -1;
 
 	if (device->depthTexture)
@@ -740,7 +747,7 @@ void MGG_GraphicsDevice_Present(MGG_GraphicsDevice* device, mgint currentFrame, 
 	assert(device->is_recording);
 
 #if !defined(_GAMING_XBOX)
-	device->resources->Present(syncInterval, device->vsync ? 0 : DXGI_PRESENT_ALLOW_TEARING);
+	device->resources->Present(syncInterval, device->vsync);
 #else
 	device->resources->PresentX();
 #endif
@@ -1168,7 +1175,7 @@ void MGDX_ApplyState(MGG_GraphicsDevice* device)
 			// TODO: We should be using a commutative hash in SetSamplerState.
 			// TODO: Hashing the pointers can be dangerous... use unique ids.
 
-			uint32_t hash = MG_ComputeHash((mgbyte*)device->samplers[s], maxSlot * sizeof(MGG_SamplerState*));
+			uint32_t hash = MG_ComputeHash(reinterpret_cast<mgbyte*>(device->samplers[s]), (maxSlot + 1) * sizeof(MGG_SamplerState*));
 			auto iter = device->samplerSetHandles.find(hash);			
 			if (iter != device->samplerSetHandles.end())
 			{
@@ -2285,7 +2292,7 @@ MGG_OcclusionQuery* MGG_OcclusionQuery_Create(MGG_GraphicsDevice* device)
 	query->index = device->resources->GetGraphicsHeaps()->GetQueryIndex();
 
 	CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(8);
-	D3D12MA::ALLOCATION_DESC allocDesc = { D3D12MA::ALLOCATION_FLAG_COMMITTED, D3D12_HEAP_TYPE_READBACK };
+	D3D12MA::ALLOCATION_DESC allocDesc = { D3D12MA::ALLOCATION_FLAG_NONE, D3D12_HEAP_TYPE_READBACK };
 
 	device->resources->GetAllocator()->CreateResource(
 		&allocDesc, &resourceDesc,

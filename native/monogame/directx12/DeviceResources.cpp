@@ -29,6 +29,8 @@ private:
     HWND m_window;
 #endif
 
+    std::atomic<uint32_t> m_frame = 0;
+
     bool m_allowTearing = false;
     uint32_t m_backBufferIndex = 0;
     MGSurfaceFormat m_backBufferFormat;
@@ -44,7 +46,19 @@ private:
     std::unique_ptr<CommandContext> m_commandContext;
     std::unique_ptr<Heaps> m_heaps;
     Microsoft::WRL::ComPtr<D3D12MA::Allocator> m_allocator;
-    Microsoft::WRL::ComPtr<D3D12MA::Pool> m_transientBufferPool;
+
+    struct TempBuffer
+    {
+        uint64_t fence;
+        D3D12_HEAP_TYPE type;
+        D3D12_RESOURCE_DESC desc;
+        Microsoft::WRL::ComPtr<ID3D12Resource> buffer;
+        Microsoft::WRL::ComPtr<D3D12MA::Allocation> alloc;
+        uint32_t frame;
+    };
+
+    std::mutex m_bufferMutex;
+    std::vector<TempBuffer> m_tempBuffers;
 
     struct TempBuffer
     {
@@ -87,7 +101,6 @@ public:
 
         m_tempBuffers.clear();
         m_commandContext.reset();
-        m_transientBufferPool.Reset();
         m_heaps.reset();
         m_commandListPool.reset();
         m_queue.reset();
@@ -104,9 +117,7 @@ public:
 #endif
         m_d3dDevice.Reset();
 
-#if !defined(_GAMING_XBOX)
-
-#if defined(_DEBUG)
+#if defined(_DEBUG) && !defined(_GAMING_XBOX)
         Microsoft::WRL::ComPtr<IDXGIDebug1> dxgiDebug;
         if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug)))) {
             dxgiDebug->ReportLiveObjects(
@@ -114,11 +125,29 @@ public:
                 DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
         }
 #endif
+
+#if !defined(_GAMING_XBOX)
         m_dxgiFactory.Reset();
 #endif
-
         // Must be last as it will dump memory leaks.
         m_allocator.Reset();
+    }
+
+    void CleanupTempBuffers(uint32_t frame)
+    {
+        const int FREE_DELAY = 16;
+
+        auto iter = m_tempBuffers.begin();
+        for (; iter != m_tempBuffers.end();)
+        {
+            if ((frame - iter->frame) > FREE_DELAY)
+            {
+                iter = m_tempBuffers.erase(iter);
+                continue;
+            }
+
+            iter++;
+        }
     }
 
 #if defined(_GAMING_XBOX)
@@ -251,6 +280,17 @@ public:
             desc.pDevice = m_d3dDevice.Get();
 #if !defined(_GAMING_XBOX)
             desc.pAdapter = adapter;
+
+            // The unit tests will fail on our current Windows runner
+            // if we do not reduce the block size we get OOM errors.
+            //
+            // Note we're not having this issue on Vulkan on the same
+            // Windows runner.  So what are we doing wrong on DX12 that
+            // we need to do this here?
+            //
+            const char* running_unit_tests = std::getenv("MG_RUNNING_UNIT_TESTS");
+            if (running_unit_tests != nullptr)
+                desc.PreferredBlockSize = 4ull * 1024 * 1024;
 #else
             Microsoft::WRL::ComPtr<IDXGIDevice1> dxgiDevice;
             Microsoft::WRL::ComPtr<IDXGIAdapter> dxgiAdapter;
@@ -259,21 +299,13 @@ public:
             desc.pAdapter = dxgiAdapter.Get();
 #endif
             D3D12MA::CreateAllocator(&desc, &m_allocator);
-
-            D3D12MA::POOL_DESC poolDesc = {};
-            poolDesc.HeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD; // We use an UPLOAD heap for temporary VBs/IBs (best for CPU-write-once, GPU-read-once data cf https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_heap_type#constants)
-            poolDesc.Flags = D3D12MA::POOL_FLAG_ALGORITHM_LINEAR;
-            poolDesc.HeapFlags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-            poolDesc.BlockSize = MAX_BACK_BUFFER_COUNT * MAX_BUFFER_PER_FRAME * D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT; // Alignment of buffers is always 64KB
-            poolDesc.MinBlockCount = poolDesc.MaxBlockCount = 1;
-            poolDesc.MaxBlockCount = 1;
-            m_allocator->CreatePool(&poolDesc, &m_transientBufferPool);
         }
 
         m_commandContext = std::make_unique<CommandContext>(device);
 
 #if !defined(_GAMING_XBOX)
         BOOL allowTearing = FALSE;
+#if !defined(_GAMING_XBOX)
         if (SUCCEEDED(m_dxgiFactory->CheckFeatureSupport(
             DXGI_FEATURE_PRESENT_ALLOW_TEARING,
             &allowTearing,
@@ -399,6 +431,11 @@ public:
         m_heaps->Prepare(m_backBufferIndex);
         m_commandContext->Reset(m_backBufferIndex);
 
+        {
+            std::lock_guard<std::mutex> lock(m_bufferMutex);
+            CleanupTempBuffers(m_frame);
+        }
+
         std::vector<D3D12_RESOURCE_BARRIER> batch;
         GetMainTarget()->Transition(batch, m_commandContext->GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -434,12 +471,14 @@ public:
         m_queue->PresentX(1, &planeParameters, nullptr);
 
         m_backBufferIndex = (m_backBufferIndex + 1) % m_backBufferCount;
+        ++m_frame;
     }
 #else
-    void Present(UINT sync, UINT flags) {
+    void Present(UINT sync, bool vsync) {
         BeforePresent();
 
-        if (sync == 0 && m_allowTearing)
+        UINT flags = 0;
+        if (sync == 0 && !vsync && m_allowTearing)
             flags |= DXGI_PRESENT_ALLOW_TEARING;
 
         HandleLost(m_swapChain->Present(sync, flags));
@@ -447,6 +486,7 @@ public:
         m_fenceValues[m_backBufferIndex] = m_queue->SignalFence();
 
         m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+        ++m_frame;
     }
 
     void SetWindow(HWND window) noexcept {
@@ -479,7 +519,7 @@ public:
         m_commandListPool.reset();
         m_queue.reset();
         m_heaps.reset();
-        m_transientBufferPool.Reset();
+        //m_transientBufferPool.Reset();
         m_swapChain.Reset();
         m_d3dDevice.Reset();
         m_dxgiFactory.Reset();
@@ -651,8 +691,8 @@ void DeviceResources::Resume() {
 }
 #else
 
-void DeviceResources::Present(int sync, int flags) {
-    pImpl->Present(sync, flags);
+void DeviceResources::Present(int sync, bool vsync) {
+    pImpl->Present(sync, vsync);
 }
 
 void DeviceResources::SetWindow(void* hwnd) {
@@ -703,17 +743,19 @@ D3D12MA::Allocator* Graphics::DeviceResources::GetAllocator() const {
     return pImpl->m_allocator.Get();
 }
 
-D3D12MA::Pool* Graphics::DeviceResources::GetTransientBufferPool() const {
-    return pImpl->m_transientBufferPool.Get();
-}
-
 Texture* Graphics::DeviceResources::GetMainTarget() const noexcept {
     return pImpl->GetMainTarget();
 }
 
-ID3D12Resource* Graphics::DeviceResources::TakeUploadBuffer(D3D12_HEAP_TYPE type, D3D12_RESOURCE_STATES state, D3D12_RESOURCE_DESC& desc)
+ID3D12Resource* Graphics::DeviceResources::TakeUploadBuffer(D3D12_HEAP_TYPE type, D3D12_RESOURCE_STATES state, D3D12_RESOURCE_DESC& desc) const
 {
     std::lock_guard<std::mutex> lock(pImpl->m_bufferMutex);
+
+    const uint32_t frame = pImpl->m_frame;
+
+    int retry_count = 0;
+
+RETRY_FIND_BUFFER:
 
     uint64_t fence = pImpl->m_queue->PollCurrentFenceValue();
 
@@ -724,34 +766,62 @@ ID3D12Resource* Graphics::DeviceResources::TakeUploadBuffer(D3D12_HEAP_TYPE type
     {
         if (iter->fence > fence)
             continue;
-
         if (iter->type != type)
             continue;
-
         if (iter->desc.Width < desc.Width)
             continue;
 
         buffer = iter->buffer.Get();
-        iter->fence = 0;
+		iter->fence = UINT64_MAX;
+        iter->frame = frame;
         break;
     }
 
     if (buffer == nullptr)
-    { 
+    {
+        pImpl->CleanupTempBuffers(frame);
+
+        const int MAX_BUFFER_POOL_SIZE = 32;
+        if (pImpl->m_tempBuffers.size() > MAX_BUFFER_POOL_SIZE)
+        {
+            if (++retry_count > 10)
+            {
+                // If we've retried a few times either we don't
+                // have one that is reusable of this type/size or
+                // we have some VERY heavy work happening... either
+                // way don't block further and allocate one more.
+            }
+            else
+            {
+                // The upload buffers are being processed by the GPU, so if we
+                // retry it should free one to avoid using too much memory.
+                goto RETRY_FIND_BUFFER;
+            }
+        }
+
         Impl::TempBuffer upload;
-        upload.fence = 0;
+        upload.fence = UINT64_MAX;
         upload.desc = desc;
         upload.type = type;
+        upload.frame = frame;
 
-        D3D12MA::ALLOCATION_DESC allocDesc = { D3D12MA::ALLOCATION_FLAG_COMMITTED, type };
-        pImpl->m_allocator->CreateResource(
+        // We want these generally small temp buffers used to transfer data
+        // to and from the GPU into shared pages and not a dedicated allocation.
+        D3D12MA::ALLOCATION_DESC allocDesc = { D3D12MA::ALLOCATION_FLAG_NONE, type };
+        HRESULT hr = pImpl->m_allocator->CreateResource(
             &allocDesc, &desc,
             state, nullptr,
             upload.alloc.ReleaseAndGetAddressOf(),
             IID_GRAPHICS_PPV_ARGS(upload.buffer.ReleaseAndGetAddressOf()));
 
-        upload.buffer->SetName(L"tempBuffer");
-        upload.alloc->SetName(L"tempAlloc");
+        ThrowIfFailed(hr);
+
+        if (upload.buffer)
+            upload.buffer->SetName(L"tempBuffer");
+
+        if (upload.alloc)
+            upload.alloc->SetName(L"tempAlloc");
+
         pImpl->m_tempBuffers.push_back(upload);
 
         buffer = upload.buffer.Get();
