@@ -60,18 +60,6 @@ private:
     std::mutex m_bufferMutex;
     std::vector<TempBuffer> m_tempBuffers;
 
-    struct TempBuffer
-    {
-        uint64_t fence;
-        D3D12_HEAP_TYPE type;
-        D3D12_RESOURCE_DESC desc;
-        Microsoft::WRL::ComPtr<ID3D12Resource> buffer;
-        Microsoft::WRL::ComPtr<D3D12MA::Allocation> alloc;
-    };
-
-    std::mutex m_bufferMutex;
-    std::vector<TempBuffer> m_tempBuffers;
-
 public:
     Impl(MGSurfaceFormat backBufferFormat, unsigned int backBufferCount = 2) noexcept(false) {
         if (backBufferCount < 2 || backBufferCount > MAX_BACK_BUFFER_COUNT)
@@ -153,7 +141,7 @@ public:
 #if defined(_GAMING_XBOX)
     void CreateDeviceResources(DeviceResources* device)
 #else
-    void CreateDeviceResources(DeviceResources* device, IDXGIFactory6* factory, IDXGIAdapter1* adapter)        
+    void CreateDeviceResources(DeviceResources* device, IDXGIFactory6* factory, IDXGIAdapter1* adapter)
 #endif
     {
 #if defined(_GAMING_XBOX)
@@ -194,8 +182,9 @@ public:
             Microsoft::WRL::ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
 
             if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf())))) {
-               debugController->EnableDebugLayer();
-            } else {
+                debugController->EnableDebugLayer();
+            }
+            else {
                 OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
             }
 
@@ -303,7 +292,6 @@ public:
 
         m_commandContext = std::make_unique<CommandContext>(device);
 
-#if !defined(_GAMING_XBOX)
         BOOL allowTearing = FALSE;
 #if !defined(_GAMING_XBOX)
         if (SUCCEEDED(m_dxgiFactory->CheckFeatureSupport(
@@ -318,7 +306,7 @@ public:
 
 
     // TODO: all that should probably be moved to the MG backend
-    void CreateWindowSizeDependentResources(DeviceResources* device, unsigned int width, unsigned int height, float r, float g, float b, float a, int msaaCount, bool vsync) {
+    void CreateWindowSizeDependentResources(DeviceResources* device, unsigned int width, unsigned int height, float r, float g, float b, float a, int msaaCount) {
         WaitForGpu();
 
 #if defined(_GAMING_XBOX)
@@ -593,11 +581,11 @@ private:
 
         Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
         for (UINT adapterIndex = 0;
-             SUCCEEDED(m_dxgiFactory->EnumAdapterByGpuPreference(
-                 adapterIndex,
-                 DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                 IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
-             adapterIndex++) {
+            SUCCEEDED(m_dxgiFactory->EnumAdapterByGpuPreference(
+                adapterIndex,
+                DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
+            adapterIndex++) {
             DXGI_ADAPTER_DESC1 desc;
             ThrowIfFailed(adapter->GetDesc1(&desc));
 
@@ -663,8 +651,8 @@ void DeviceResources::CreateDeviceResources(IDXGIFactory6* factory, IDXGIAdapter
 #endif
 
 // These resources need to be recreated every time the window size is changed.
-void DeviceResources::CreateWindowSizeDependentResources(int width, int height, float r, float g, float b, float a, int msaaCount, bool vsync) {
-    pImpl->CreateWindowSizeDependentResources(this, width, height, r, g, b, a, msaaCount, vsync);
+void DeviceResources::CreateWindowSizeDependentResources(int width, int height, float r, float g, float b, float a, int msaaCount) {
+    pImpl->CreateWindowSizeDependentResources(this, width, height, r, g, b, a, msaaCount);
 }
 
 // Prepare the command list and render target for rendering.
@@ -772,7 +760,7 @@ RETRY_FIND_BUFFER:
             continue;
 
         buffer = iter->buffer.Get();
-		iter->fence = UINT64_MAX;
+        iter->fence = UINT64_MAX;
         iter->frame = frame;
         break;
     }
