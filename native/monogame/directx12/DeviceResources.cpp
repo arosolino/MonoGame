@@ -141,7 +141,7 @@ public:
 #if defined(_GAMING_XBOX)
     void CreateDeviceResources(DeviceResources* device)
 #else
-    void CreateDeviceResources(DeviceResources* device, IDXGIFactory6* factory, IDXGIAdapter1* adapter)
+    void CreateDeviceResources(DeviceResources* device, IDXGIFactory6* factory, IDXGIAdapter1* adapter)        
 #endif
     {
 #if defined(_GAMING_XBOX)
@@ -182,9 +182,8 @@ public:
             Microsoft::WRL::ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
 
             if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf())))) {
-                debugController->EnableDebugLayer();
-            }
-            else {
+               debugController->EnableDebugLayer();
+            } else {
                 OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
             }
 
@@ -581,11 +580,11 @@ private:
 
         Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
         for (UINT adapterIndex = 0;
-            SUCCEEDED(m_dxgiFactory->EnumAdapterByGpuPreference(
-                adapterIndex,
-                DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
-            adapterIndex++) {
+             SUCCEEDED(m_dxgiFactory->EnumAdapterByGpuPreference(
+                 adapterIndex,
+                 DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                 IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
+             adapterIndex++) {
             DXGI_ADAPTER_DESC1 desc;
             ThrowIfFailed(adapter->GetDesc1(&desc));
 
@@ -760,7 +759,7 @@ RETRY_FIND_BUFFER:
             continue;
 
         buffer = iter->buffer.Get();
-        iter->fence = UINT64_MAX;
+		iter->fence = UINT64_MAX;
         iter->frame = frame;
         break;
     }

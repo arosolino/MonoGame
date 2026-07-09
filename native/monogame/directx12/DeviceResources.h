@@ -41,7 +41,7 @@ public:
     void CreateDeviceResources(IDXGIFactory6* factory, IDXGIAdapter1* adapter);
 #endif
 
-    void CreateWindowSizeDependentResources(int width, int height, float r, float g, float b, float a, int msaaCount, bool vsync);
+    void CreateWindowSizeDependentResources(int width, int height, float r, float g, float b, float a, int msaaCount);
     uint32_t Prepare();
     void WaitForGpu();
 
