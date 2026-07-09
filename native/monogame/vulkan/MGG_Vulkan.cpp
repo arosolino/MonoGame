@@ -1577,6 +1577,12 @@ static void MGVK_CleanupSwapChain(MGG_GraphicsDevice* device)
 
 		if (usesSwapchain)
 		{
+			// Clean up any pipelines that point at this target set cache.
+			MGVK_DestroyPipelines(device, [targetSetCache](const MGVK_PipelineState& s)
+				{
+					return s.targets == targetSetCache;
+				});
+
 			// This cache entry uses the swapchain, so it's safe to destroy.
 			for (int i = 0; i < MGVK_NUM_TARGETS; ++i)
 			{
