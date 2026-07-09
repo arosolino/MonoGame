@@ -61,7 +61,7 @@
 
 #include <DirectXColors.h>
 #include <DirectXMath.h>
-#include <d3d12sdklayers.h>
+//#include <d3d12sdklayers.h>
 
 #include <algorithm>
 #include <cassert>

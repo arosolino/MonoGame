@@ -91,7 +91,9 @@ public:
         m_heaps.reset();
         m_commandListPool.reset();
         m_queue.reset();
+#if !defined(_GAMING_XBOX)
         m_swapChain.Reset();
+#endif
 
 #if defined(_DEBUG)
         Microsoft::WRL::ComPtr<ID3D12DebugDevice> debugDevice;
@@ -102,6 +104,8 @@ public:
 #endif
         m_d3dDevice.Reset();
 
+#if !defined(_GAMING_XBOX)
+
 #if defined(_DEBUG)
         Microsoft::WRL::ComPtr<IDXGIDebug1> dxgiDebug;
         if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug)))) {
@@ -111,6 +115,7 @@ public:
         }
 #endif
         m_dxgiFactory.Reset();
+#endif
 
         // Must be last as it will dump memory leaks.
         m_allocator.Reset();
@@ -267,6 +272,7 @@ public:
 
         m_commandContext = std::make_unique<CommandContext>(device);
 
+#if !defined(_GAMING_XBOX)
         BOOL allowTearing = FALSE;
         if (SUCCEEDED(m_dxgiFactory->CheckFeatureSupport(
             DXGI_FEATURE_PRESENT_ALLOW_TEARING,
@@ -275,6 +281,7 @@ public:
         {
             m_allowTearing = allowTearing == TRUE;
         }
+#endif
     }
 
 
